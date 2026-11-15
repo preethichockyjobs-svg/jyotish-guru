@@ -126,7 +126,7 @@ textarea.out{min-height:130px;font-family:ui-monospace,Menlo,monospace;font-size
       <div class="btns"><button type="button" id="save">Save to client book</button></div>
     </form>
 
-    <div class="panel">
+    <div class="panel" id="bookpanel">
       <h2>Client book</h2>
       <ul class="clients" id="book"></ul>
       <div class="btns"><button type="button" id="csv">Show all as CSV</button></div>
@@ -145,7 +145,7 @@ textarea.out{min-height:130px;font-family:ui-monospace,Menlo,monospace;font-size
       <label for="np">Password (at least 8 characters)</label>
       <input id="np" type="text" autocomplete="off">
       <label for="nr">Role</label>
-      <select id="nr"><option value="astrologer">Astrologer</option><option value="admin">Admin</option></select>
+      <select id="nr"><option value="astrologer">Astrologer</option><option value="client">Client</option><option value="admin">Admin</option></select>
       <div class="err" id="uerr" role="alert"></div>
       <button class="primary" type="button" id="mk">Create user</button>
     </div>
@@ -314,8 +314,16 @@ async function enter(user){
   const {data:p,error}=await sb.from("profiles").select("*").eq("id",user.id).maybeSingle();
   if(error||!p||!p.active){await sb.auth.signOut();$("lerr").textContent="This account is not active. Ask your administrator.";showApp(false);return}
   me=p;$("who").textContent=p.username+" ("+p.role+")";$("users").hidden=p.role!=="admin";
-  showApp(true);run();
+  $("bookpanel").hidden=p.role==="client";
+  $("save").textContent=p.role==="client"?"Save my details":"Save to client book";
+  showApp(true);
   await loadClients();
+  if(p.role==="client"){
+    if(clients[0]){const c=clients[0];FIELDS.forEach(f=>$(f).value=f==="tob"?String(c[f]).slice(0,5):(c[f]??""))}
+    else{$("name").value=p.full_name||"";$("dob").value="";$("tob").value="";$("q").value="";$("err").textContent="Enter your birth details to see your chart."}
+    $("city").onchange();
+    if(clients[0])run();
+  }else run();
   if(p.role==="admin")await loadUsers();
 }
 $("lf").addEventListener("submit",async e=>{
@@ -350,7 +358,9 @@ $("save").onclick=async()=>{
   const r=read();$("err").textContent=r.e||"";if(r.e)return;
   const i=r.inp;
   const rec={owner:me.id,name:i.name,dob:i.dob,tob:i.tob,gender:i.gender,city:i.city,lat:i.lat,lon:i.lon,tz:i.tz,focus:i.focus,q:i.q};
-  const {error}=await sb.from("clients").upsert(rec,{onConflict:"owner,name,dob"});
+  let error;
+  if(me.role==="client"&&clients[0]){const {owner,...rest}=rec;({error}=await sb.from("clients").update(rest).eq("id",clients[0].id))}
+  else({error}=await sb.from("clients").upsert(rec,{onConflict:"owner,name,dob"}));
   if(error){$("err").textContent="Could not save: "+error.message;return}
   await loadClients();$("err").textContent="Saved.";
 };
