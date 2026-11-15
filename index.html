@@ -63,10 +63,30 @@ td.num{font-variant-numeric:tabular-nums}
 .clients button{padding:5px 10px;font-size:13px}
 textarea.out{min-height:130px;font-family:ui-monospace,Menlo,monospace;font-size:12px}
 .note{font-size:13px;color:var(--muted);border-top:1px solid var(--line);margin-top:20px;padding-top:12px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px;color:var(--muted);font-size:13px}
+.login{max-width:380px;margin:8vh auto 0}
+.ok{color:var(--accent);font-size:13px;margin-top:8px;min-height:1em}
+.users{list-style:none;margin:0 0 12px;padding:0;display:flex;flex-direction:column;gap:8px}
+.users li{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:8px}
+.users li span{min-width:0;overflow-wrap:anywhere}
+.users button{padding:5px 10px;font-size:13px}
 </style>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600&family=Inter:wght@400;600&display=swap">
 
-<div class="wrap">
+<div class="wrap login" id="loginwrap">
+  <form class="panel" id="lf" novalidate>
+    <h2>Sign in to Jyotish Guru</h2>
+    <label for="lu">Username</label>
+    <input id="lu" autocomplete="username" autocapitalize="none">
+    <label for="lp">Password</label>
+    <input id="lp" type="password" autocomplete="current-password">
+    <div class="err" id="lerr" role="alert"></div>
+    <button class="primary" type="submit">Sign in</button>
+    <div class="hint">Accounts are created by your administrator.</div>
+  </form>
+</div>
+<div class="wrap" id="app" hidden>
+<div class="top"><span>Signed in as <b id="who"></b></span><button type="button" id="out">Sign out</button></div>
 <header>
   <h1>Jyotish Guru</h1>
   <p>Enter a customer's birth details to build their Vedic (sidereal) chart, Moon sign, nakshatra, current dasha and a reading on the area they care about.</p>
@@ -113,6 +133,29 @@ textarea.out{min-height:130px;font-family:ui-monospace,Menlo,monospace;font-size
       <textarea class="out" id="csvout" hidden readonly aria-label="Client CSV"></textarea>
       <div class="hint">Saved only in this browser on this device. Clear it before sharing the device.</div>
     </div>
+    <div class="panel" id="users" hidden>
+      <h2>Users</h2>
+      <ul class="users" id="ulist"></ul>
+      <h3>Create a user</h3>
+      <label for="nu">Username</label>
+      <input id="nu" autocomplete="off" autocapitalize="none">
+      <div class="hint">3 to 30 characters: lowercase letters, numbers, dot, dash or underscore.</div>
+      <label for="nn">Full name</label>
+      <input id="nn" autocomplete="off">
+      <label for="np">Password (at least 8 characters)</label>
+      <input id="np" type="text" autocomplete="off">
+      <label for="nr">Role</label>
+      <select id="nr"><option value="astrologer">Astrologer</option><option value="admin">Admin</option></select>
+      <div class="err" id="uerr" role="alert"></div>
+      <button class="primary" type="button" id="mk">Create user</button>
+    </div>
+    <div class="panel">
+      <h2>My account</h2>
+      <label for="cp">New password (at least 8 characters)</label>
+      <input id="cp" type="password" autocomplete="new-password">
+      <div class="ok" id="cpm2" role="status"></div>
+      <div class="btns"><button type="button" id="chg">Change password</button></div>
+    </div>
   </div>
 
   <div class="col" id="result"></div>
@@ -120,6 +163,7 @@ textarea.out{min-height:130px;font-family:ui-monospace,Menlo,monospace;font-size
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.19/astronomy.browser.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script>
 const SIGNS=[
  ["Mesha","Aries","Mars","Bold, direct and quick to start things. Needs an outlet for energy."],
@@ -252,29 +296,99 @@ function run(){
 }
 $("f").addEventListener("submit",e=>{e.preventDefault();run()});
 
-let clients=[];
-try{clients=JSON.parse(localStorage.getItem("jg_clients")||"[]")}catch(e){}
-function persist(){try{localStorage.setItem("jg_clients",JSON.stringify(clients))}catch(e){}}
+const SUPABASE_URL="https://igjpizslpabaaknqdvzg.supabase.co";
+const SUPABASE_KEY="sb_publishable_Hc6WpTC180Z-Pg0ahTQgSA_QHzfSxh9";
+const MAIL="@jyotish.example";
 const FIELDS=["name","dob","tob","gender","city","lat","lon","tz","focus","q"];
-function drawBook(){
-  $("book").innerHTML=clients.length?clients.map((c,i)=>`<li><span><b>${esc(c.name)}</b><br><small class="tag">${esc(c.dob)} ${esc(c.tob)}</small></span><span><button data-o="${i}">Open</button> <button data-d="${i}" aria-label="Delete ${esc(c.name)}">Delete</button></span></li>`).join(""):`<li><span class="hint">No saved customers yet. Fill the form and choose Save.</span></li>`;
+let sb=null,me=null,clients=[];
+const toEmail=u=>u.trim().toLowerCase()+MAIL;
+function showApp(on){$("app").hidden=!on;$("loginwrap").hidden=on}
+
+async function boot(){
+  if(SUPABASE_URL.includes("YOUR-PROJECT")){$("lerr").textContent="Setup needed: put your Supabase Project URL at the top of the script.";showApp(false);return}
+  sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+  const {data}=await sb.auth.getSession();
+  if(data.session)await enter(data.session.user);else showApp(false);
 }
-$("book").addEventListener("click",e=>{
-  const o=e.target.dataset.o,d=e.target.dataset.d;
-  if(o!==undefined){FIELDS.forEach(f=>$(f).value=clients[o][f]??"");$("city").onchange();run()}
-  if(d!==undefined){clients.splice(d,1);persist();drawBook()}
+async function enter(user){
+  const {data:p,error}=await sb.from("profiles").select("*").eq("id",user.id).maybeSingle();
+  if(error||!p||!p.active){await sb.auth.signOut();$("lerr").textContent="This account is not active. Ask your administrator.";showApp(false);return}
+  me=p;$("who").textContent=p.username+" ("+p.role+")";$("users").hidden=p.role!=="admin";
+  showApp(true);run();
+  await loadClients();
+  if(p.role==="admin")await loadUsers();
+}
+$("lf").addEventListener("submit",async e=>{
+  e.preventDefault();$("lerr").textContent="";
+  const u=$("lu").value.trim(),pw=$("lp").value;
+  if(!u||!pw){$("lerr").textContent="Enter your username and password.";return}
+  if(!sb){return}
+  const {data,error}=await sb.auth.signInWithPassword({email:toEmail(u),password:pw});
+  if(error){$("lerr").textContent="Wrong username or password.";return}
+  $("lp").value="";await enter(data.user);
 });
-$("save").onclick=()=>{
+$("out").onclick=async()=>{await sb.auth.signOut();me=null;clients=[];$("result").innerHTML="";showApp(false)};
+
+async function loadClients(){
+  const {data,error}=await sb.from("clients").select("*").eq("owner",me.id).order("name");
+  if(error){$("err").textContent="Could not load clients: "+error.message;return}
+  clients=data;drawBook();
+}
+function drawBook(){
+  $("book").innerHTML=clients.length?clients.map((c,i)=>`<li><span><b>${esc(c.name)}</b><br><small class="tag">${esc(c.dob)} ${esc(String(c.tob).slice(0,5))}</small></span><span><button data-o="${i}">Open</button> <button data-d="${i}" aria-label="Delete ${esc(c.name)}">Delete</button></span></li>`).join(""):`<li><span class="hint">No saved customers yet. Fill the form and choose Save.</span></li>`;
+}
+$("book").addEventListener("click",async e=>{
+  const o=e.target.dataset.o,d=e.target.dataset.d;
+  if(o!==undefined){const c=clients[o];FIELDS.forEach(f=>$(f).value=f==="tob"?String(c[f]).slice(0,5):(c[f]??""));$("city").onchange();run()}
+  if(d!==undefined){
+    const {error}=await sb.from("clients").delete().eq("id",clients[d].id);
+    if(error){$("err").textContent="Could not delete: "+error.message;return}
+    await loadClients();
+  }
+});
+$("save").onclick=async()=>{
   const r=read();$("err").textContent=r.e||"";if(r.e)return;
-  const rec={};FIELDS.forEach(f=>rec[f]=$(f).value.trim());
-  const i=clients.findIndex(c=>c.name===rec.name&&c.dob===rec.dob);
-  if(i>=0)clients[i]=rec;else clients.push(rec);
-  persist();drawBook();$("err").textContent="Saved.";
+  const i=r.inp;
+  const rec={owner:me.id,name:i.name,dob:i.dob,tob:i.tob,gender:i.gender,city:i.city,lat:i.lat,lon:i.lon,tz:i.tz,focus:i.focus,q:i.q};
+  const {error}=await sb.from("clients").upsert(rec,{onConflict:"owner,name,dob"});
+  if(error){$("err").textContent="Could not save: "+error.message;return}
+  await loadClients();$("err").textContent="Saved.";
 };
 $("csv").onclick=()=>{
   const q=v=>'"'+String(v).replace(/"/g,'""')+'"';
-  $("csvout").value=[FIELDS.join(",")].concat(clients.map(c=>FIELDS.map(f=>q(c[f]??"")).join(","))).join("\n");
+  $("csvout").value=[FIELDS.join(",")].concat(clients.map(c=>FIELDS.map(f=>q(f==="tob"?String(c[f]).slice(0,5):(c[f]??""))).join(","))).join("\n");
   $("csvout").hidden=false;$("csvout").select();
 };
-drawBook();run();
+
+async function loadUsers(){
+  const {data,error}=await sb.from("profiles").select("*").order("created_at");
+  if(error){$("uerr").textContent="Could not load users: "+error.message;return}
+  $("ulist").innerHTML=data.map(u=>`<li><span><b>${esc(u.username)}</b> <small class="tag">${esc(u.role)}</small> ${u.active?"":'<small class="tag">disabled</small>'}<br><small>${esc(u.full_name||"")}</small></span><span>${u.id===me.id?"":`<button data-t="${u.id}" data-a="${u.active}">${u.active?"Disable":"Enable"}</button>`}</span></li>`).join("");
+}
+$("ulist").addEventListener("click",async e=>{
+  const id=e.target.dataset.t;if(!id)return;
+  const {error}=await sb.from("profiles").update({active:e.target.dataset.a!=="true"}).eq("id",id);
+  if(error){$("uerr").textContent=error.message;return}
+  loadUsers();
+});
+$("mk").onclick=async()=>{
+  const u=$("nu").value.trim().toLowerCase(),n=$("nn").value.trim(),pw=$("np").value,role=$("nr").value;
+  $("uerr").textContent="";
+  if(!/^[a-z0-9._-]{3,30}$/.test(u)){$("uerr").textContent="Username must be 3 to 30 characters: lowercase letters, numbers, dot, dash or underscore.";return}
+  if(pw.length<8){$("uerr").textContent="Password must be at least 8 characters.";return}
+  const tmp=supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}});
+  const {data,error}=await tmp.auth.signUp({email:toEmail(u),password:pw});
+  if(error||!data.user){$("uerr").textContent="Could not create the login: "+(error?error.message:"unknown error");return}
+  const {error:e2}=await sb.from("profiles").insert({id:data.user.id,username:u,full_name:n,role});
+  if(e2){$("uerr").textContent="Login created but profile failed: "+e2.message;return}
+  ["nu","nn","np"].forEach(id=>$(id).value="");
+  $("uerr").textContent="";await loadUsers();
+};
+$("chg").onclick=async()=>{
+  const pw=$("cp").value;
+  if(pw.length<8){$("cpm2").textContent="Password must be at least 8 characters.";return}
+  const {error}=await sb.auth.updateUser({password:pw});
+  $("cpm2").textContent=error?error.message:"Password changed.";if(!error)$("cp").value="";
+};
+boot();
 </script>
