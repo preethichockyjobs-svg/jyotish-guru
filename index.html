@@ -1,0 +1,280 @@
+<title>Jyotish Guru</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: intake form on the left, chart and reading on the right; client book under the form. Palette: night indigo, brass, lotus rose. Type: Fraunces for headings, Inter for text. */
+:root{
+  --bg:#f3f1f8; --panel:#ffffff; --ink:#1d1b3a; --muted:#5f5c80; --line:#dcd8ea;
+  --accent:#4a3fa3; --accent-ink:#ffffff; --brass:#a9741a; --rose:#b23a64; --soft:#ebe8f6;
+  --font-head:'Fraunces',Georgia,serif; --font-body:'Inter',system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#12112a; --panel:#1b1a3a; --ink:#ece9fb; --muted:#a8a4cf; --line:#34325e;
+  --accent:#9a8cff; --accent-ink:#12112a; --brass:#e0b45a; --rose:#f08aaa; --soft:#25234a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12112a; --panel:#1b1a3a; --ink:#ece9fb; --muted:#a8a4cf; --line:#34325e;
+  --accent:#9a8cff; --accent-ink:#12112a; --brass:#e0b45a; --rose:#f08aaa; --soft:#25234a; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.6;
+  padding-block:24px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1120px;margin:0 auto}
+header h1{font-family:var(--font-head);font-weight:600;font-size:clamp(28px,5vw,40px);margin:0;letter-spacing:-.01em;text-wrap:balance}
+header p{margin:6px 0 0;color:var(--muted);max-width:62ch}
+.grid{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:24px;margin-top:24px;align-items:start}
+@media(max-width:860px){.grid{grid-template-columns:minmax(0,1fr)}}
+.col{display:flex;flex-direction:column;gap:24px;min-width:0}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px;min-width:0}
+h2{font-family:var(--font-head);font-weight:600;font-size:20px;margin:0 0 12px}
+h3{font-size:12px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin:20px 0 8px;font-weight:600}
+label{display:block;font-size:13px;font-weight:600;margin:12px 0 4px}
+input,select,textarea{width:100%;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:9px 10px}
+input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.row>*{min-width:0}
+.hint{font-size:12px;color:var(--muted);margin-top:4px}
+.err{color:var(--rose);font-size:13px;margin-top:10px;min-height:1em}
+button{font:inherit;font-weight:600;border-radius:8px;padding:9px 14px;border:1px solid var(--line);background:var(--soft);color:var(--ink);cursor:pointer}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);width:100%;margin-top:16px}
+.btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.tag{display:inline-block;font-size:12px;padding:2px 8px;border-radius:99px;background:var(--soft);color:var(--muted)}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.card{background:var(--soft);border-radius:10px;padding:12px 14px;min-width:0}
+.card small{display:block;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.08em}
+.card b{display:block;font-family:var(--font-head);font-size:20px;font-weight:600;margin-top:2px}
+.card span{font-size:13px;color:var(--muted)}
+.chart{display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(4,minmax(86px,auto));gap:4px;max-width:460px}
+.cell{border:1px solid var(--line);border-radius:6px;padding:4px 6px;font-size:12px;min-width:0;overflow-wrap:anywhere}
+.cell i{display:block;font-style:normal;color:var(--muted);font-size:11px}
+.cell.asc{border-color:var(--brass);box-shadow:inset 0 0 0 1px var(--brass)}
+.cell.mid{grid-column:2/4;grid-row:2/4;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;border:none;background:var(--soft);font-family:var(--font-head);font-size:15px}
+.cell.mid i{font-family:var(--font-body)}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
+td.num{font-variant-numeric:tabular-nums}
+.read{margin:0 0 12px;max-width:68ch}
+.read b{color:var(--accent)}
+.dasha{display:flex;flex-direction:column;gap:6px}
+.dasha div{display:flex;justify-content:space-between;gap:12px;padding:8px 12px;border-radius:8px;background:var(--soft);font-size:14px;flex-wrap:wrap}
+.dasha div.now{background:var(--accent);color:var(--accent-ink);font-weight:600}
+.clients{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.clients li{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:8px}
+.clients li span{min-width:0;overflow-wrap:anywhere}
+.clients button{padding:5px 10px;font-size:13px}
+textarea.out{min-height:130px;font-family:ui-monospace,Menlo,monospace;font-size:12px}
+.note{font-size:13px;color:var(--muted);border-top:1px solid var(--line);margin-top:20px;padding-top:12px}
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600&family=Inter:wght@400;600&display=swap">
+
+<div class="wrap">
+<header>
+  <h1>Jyotish Guru</h1>
+  <p>Enter a customer's birth details to build their Vedic (sidereal) chart, Moon sign, nakshatra, current dasha and a reading on the area they care about.</p>
+</header>
+
+<div class="grid">
+  <div class="col">
+    <form class="panel" id="f" novalidate>
+      <h2>Customer details</h2>
+      <label for="name">Full name</label>
+      <input id="name" autocomplete="off" value="Asha Raman (example)">
+      <div class="row">
+        <div><label for="dob">Date of birth</label><input id="dob" type="date" value="1990-06-15"></div>
+        <div><label for="tob">Time of birth</label><input id="tob" type="time" value="10:30"></div>
+      </div>
+      <label for="gender">Gender</label>
+      <select id="gender"><option>Female</option><option>Male</option><option>Other</option></select>
+      <label for="city">Birth place</label>
+      <select id="city"></select>
+      <div class="row" id="manual" hidden>
+        <div><label for="lat">Latitude</label><input id="lat" inputmode="decimal" value="13.08"></div>
+        <div><label for="lon">Longitude</label><input id="lon" inputmode="decimal" value="80.27"></div>
+      </div>
+      <label for="tz">Time zone (hours from UTC)</label>
+      <input id="tz" inputmode="decimal" value="5.5">
+      <div class="hint">India is 5.5. Use the zone of the birth place on that date.</div>
+      <label for="focus">Area of concern</label>
+      <select id="focus">
+        <option value="career">Career</option><option value="marriage">Marriage and partnership</option>
+        <option value="finance">Money and finance</option><option value="health">Health</option>
+        <option value="education">Education and children</option>
+      </select>
+      <label for="q">Customer's question (optional)</label>
+      <textarea id="q" rows="2">Is this a good time to change jobs?</textarea>
+      <div class="err" id="err" role="alert"></div>
+      <button class="primary" type="submit">Build chart and reading</button>
+      <div class="btns"><button type="button" id="save">Save to client book</button></div>
+    </form>
+
+    <div class="panel">
+      <h2>Client book</h2>
+      <ul class="clients" id="book"></ul>
+      <div class="btns"><button type="button" id="csv">Show all as CSV</button></div>
+      <textarea class="out" id="csvout" hidden readonly aria-label="Client CSV"></textarea>
+      <div class="hint">Saved only in this browser on this device. Clear it before sharing the device.</div>
+    </div>
+  </div>
+
+  <div class="col" id="result"></div>
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.19/astronomy.browser.min.js"></script>
+<script>
+const SIGNS=[
+ ["Mesha","Aries","Mars","Bold, direct and quick to start things. Needs an outlet for energy."],
+ ["Vrishabha","Taurus","Venus","Steady, practical and loyal. Values comfort and security."],
+ ["Mithuna","Gemini","Mercury","Curious, talkative and adaptable. Thrives on variety."],
+ ["Karka","Cancer","Moon","Caring, intuitive and protective. Strongly tied to home and family."],
+ ["Simha","Leo","Sun","Confident, generous and proud. Wants recognition and leads naturally."],
+ ["Kanya","Virgo","Mercury","Careful, analytical and service-minded. Notices detail."],
+ ["Tula","Libra","Venus","Fair-minded, social and artistic. Seeks balance and harmony."],
+ ["Vrischika","Scorpio","Mars","Intense, private and determined. Deep focus and resilience."],
+ ["Dhanu","Sagittarius","Jupiter","Optimistic, honest and freedom-loving. Drawn to learning and travel."],
+ ["Makara","Capricorn","Saturn","Disciplined, patient and ambitious. Builds slowly and lasts."],
+ ["Kumbha","Aquarius","Saturn","Independent, inventive and humane. Thinks ahead of the crowd."],
+ ["Meena","Pisces","Jupiter","Compassionate, imaginative and sensitive. Needs quiet time to recharge."]];
+const NAK=["Ashwini","Bharani","Krittika","Rohini","Mrigashira","Ardra","Punarvasu","Pushya","Ashlesha","Magha","Purva Phalguni","Uttara Phalguni","Hasta","Chitra","Swati","Vishakha","Anuradha","Jyeshtha","Mula","Purva Ashadha","Uttara Ashadha","Shravana","Dhanishta","Shatabhisha","Purva Bhadrapada","Uttara Bhadrapada","Revati"];
+const DLORD=["Ketu","Venus","Sun","Moon","Mars","Rahu","Jupiter","Saturn","Mercury"];
+const DYEARS={Ketu:7,Venus:20,Sun:6,Moon:10,Mars:7,Rahu:18,Jupiter:16,Saturn:19,Mercury:17};
+const HOUSE=["self, body and temperament","wealth, speech and family","effort, courage and siblings","home, mind and inner peace","learning, creativity and children","work, health and obstacles","marriage and partnerships","change, research and sudden events","fortune, teachers and purpose","career, status and public life","gains, friends and networks","expenses, rest and foreign ties"];
+const FOCUS={career:[10,6],marriage:[7,2],finance:[2,11],health:[1,6],education:[5,4]};
+const FOCUSNAME={career:"career",marriage:"marriage and partnership",finance:"money and finance",health:"health",education:"education and children"};
+const CITIES=[["Chennai",13.08,80.27],["Mumbai",19.08,72.88],["Delhi",28.61,77.21],["Bengaluru",12.97,77.59],["Hyderabad",17.39,78.49],["Kolkata",22.57,88.36],["Pune",18.52,73.86],["Ahmedabad",23.02,72.57],["Coimbatore",11.02,76.96],["Madurai",9.93,78.12],["Kochi",9.93,76.27],["Jaipur",26.91,75.79],["Lucknow",26.85,80.95]];
+const SOUTH=[[11,0,1,2],[10,null,null,3],[9,null,null,4],[8,7,6,5]];
+
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const norm=x=>((x%360)+360)%360;
+const fmtDeg=l=>{const d=l%30;return Math.floor(d)+"° "+String(Math.floor((d%1)*60)).padStart(2,"0")+"'"};
+const fmtDate=d=>d.toLocaleDateString("en-IN",{day:"2-digit",month:"short",year:"numeric"});
+
+CITIES.forEach((c,i)=>{const o=document.createElement("option");o.value=i;o.textContent=c[0];$("city").appendChild(o)});
+const other=document.createElement("option");other.value="x";other.textContent="Other (enter latitude and longitude)";$("city").appendChild(other);
+$("city").onchange=()=>{$("manual").hidden=$("city").value!=="x"};
+
+function jdOf(d){return d.getTime()/86400000+2440587.5}
+function ayanamsa(d){return 23.857+((jdOf(d)-2451545)/365.25)*0.013969}
+function eclLon(body,d){return Astronomy.Ecliptic(Astronomy.GeoVector(body,d,true)).elon}
+
+function calc(inp){
+  const [y,mo,da]=inp.dob.split("-").map(Number),[hh,mm]=inp.tob.split(":").map(Number);
+  const utc=new Date(Date.UTC(y,mo-1,da,hh,mm)-inp.tz*3600000);
+  const ay=ayanamsa(utc);
+  const P={};
+  ["Sun","Moon","Mars","Mercury","Jupiter","Venus","Saturn"].forEach(b=>P[b]=norm(eclLon(b,utc)-ay));
+  const T=(jdOf(utc)-2451545)/36525;
+  P.Rahu=norm(125.0445479-1934.1362891*T-ay);
+  P.Ketu=norm(P.Rahu+180);
+  const lst=norm(Astronomy.SiderealTime(utc)*15+inp.lon);
+  const eps=23.4393*Math.PI/180,th=lst*Math.PI/180,ph=inp.lat*Math.PI/180;
+  const asc=norm(Math.atan2(Math.cos(th),-(Math.sin(th)*Math.cos(eps)+Math.tan(ph)*Math.sin(eps)))*180/Math.PI-ay);
+  const ascSign=Math.floor(asc/30);
+  const bodies=Object.keys(P).map(n=>{const s=Math.floor(P[n]/30);return{n,lon:P[n],sign:s,house:((s-ascSign+12)%12)+1}});
+  const moon=P.Moon,nsz=360/27,ni=Math.floor(moon/nsz),frac=(moon%nsz)/nsz,pada=Math.floor(frac*4)+1;
+  const first=DLORD[ni%9],yr=365.25*86400000;
+  let t=utc.getTime()-frac*DYEARS[first]*yr,i=ni%9;const periods=[];
+  for(let k=0;k<12;k++){const L=DLORD[i%9],e=t+DYEARS[L]*yr;periods.push({L,start:new Date(t),end:new Date(e)});t=e;i++}
+  return{utc,asc,ascSign,bodies,moonSign:Math.floor(moon/30),ni,pada,periods};
+}
+
+function houseText(c,h){
+  const s=(c.ascSign+h-1)%12,lord=SIGNS[s][2];
+  const lb=c.bodies.find(b=>b.n===lord);
+  const here=c.bodies.filter(b=>b.house===h).map(b=>b.n);
+  return `<b>House ${h}</b> (${HOUSE[h-1]}) is ${SIGNS[s][0]}, ruled by ${lord}, which sits in house ${lb.house} (${HOUSE[lb.house-1]}).`+
+    (here.length?` ${here.join(" and ")} ${here.length>1?"are":"is"} placed here and colour${here.length>1?"":"s"} this area.`:" No planet sits here, so the ruler's placement matters most.");
+}
+
+function render(inp,c){
+  const now=new Date(),cur=c.periods.find(p=>p.start<=now&&now<p.end)||c.periods[0];
+  const hs=FOCUS[inp.focus];
+  const cells=SOUTH.flat().map((s,i)=>{
+    if(i===5)return `<div class="cell mid">${esc(inp.name.replace(/ \(example\)/,""))}<i>Lagna ${SIGNS[c.ascSign][0]}</i></div>`;
+    if(s===null)return "";
+    const here=c.bodies.filter(b=>b.sign===s).map(b=>b.n.slice(0,2)).join(" ");
+    return `<div class="cell${s===c.ascSign?" asc":""}"><i>${SIGNS[s][0]}${s===c.ascSign?" · Asc":""}</i>${here}</div>`}).join("");
+  const rows=c.bodies.map(b=>`<tr><td>${b.n}</td><td>${SIGNS[b.sign][0]}</td><td class="num">${fmtDeg(b.lon)}</td><td class="num">${b.house}</td></tr>`).join("");
+  const dash=c.periods.slice(0,6).map(p=>`<div class="${p===cur?"now":""}"><span>${p.L}${p===cur?" (running now)":""}</span><span>${fmtDate(p.start)} to ${fmtDate(p.end)}</span></div>`).join("");
+  const prompt=`You are an experienced Vedic astrologer. Give a warm, practical reading for ${inp.name.replace(/ \(example\)/,"")} (${inp.gender}).\nBirth: ${inp.dob} ${inp.tob}, UTC${inp.tz>=0?"+":""}${inp.tz}, lat ${inp.lat}, lon ${inp.lon}.\nLagna: ${SIGNS[c.ascSign][0]}. Moon: ${SIGNS[c.moonSign][0]}, ${NAK[c.ni]} pada ${c.pada}.\nPlanets (sidereal, Lahiri): ${c.bodies.map(b=>`${b.n} ${SIGNS[b.sign][0]} H${b.house}`).join("; ")}.\nRunning mahadasha: ${cur.L} until ${fmtDate(cur.end)}.\nFocus: ${FOCUSNAME[inp.focus]}. Question: ${inp.q||"general guidance"}\nExplain the reasoning, give timing windows, practical steps, and say clearly that this is guidance, not a prediction.`;
+  $("result").innerHTML=`
+  <div class="panel">
+    <h2>${esc(inp.name)}</h2>
+    <div class="cards">
+      <div class="card"><small>Lagna (rising)</small><b>${SIGNS[c.ascSign][0]}</b><span>${SIGNS[c.ascSign][1]} · ${fmtDeg(c.asc)}</span></div>
+      <div class="card"><small>Rashi (Moon sign)</small><b>${SIGNS[c.moonSign][0]}</b><span>${SIGNS[c.moonSign][1]}</span></div>
+      <div class="card"><small>Nakshatra</small><b>${NAK[c.ni]}</b><span>Pada ${c.pada} · lord ${DLORD[c.ni%9]}</span></div>
+      <div class="card"><small>Running dasha</small><b>${cur.L}</b><span>until ${fmtDate(cur.end)}</span></div>
+    </div>
+    <h3>Birth chart (South Indian style)</h3>
+    <div class="chart">${cells}</div>
+    <div class="hint">Su Sun, Mo Moon, Ma Mars, Me Mercury, Ju Jupiter, Ve Venus, Sa Saturn, Ra Rahu, Ke Ketu. Gold border marks the Lagna.</div>
+  </div>
+  <div class="panel">
+    <h2>Reading: ${FOCUSNAME[inp.focus]}</h2>
+    <p class="read">${esc(inp.q?"Question: "+inp.q:"")}</p>
+    ${hs.map(h=>`<p class="read">${houseText(c,h)}</p>`).join("")}
+    <p class="read"><b>Temperament.</b> Lagna ${SIGNS[c.ascSign][0]}: ${SIGNS[c.ascSign][3]} Moon in ${SIGNS[c.moonSign][0]}: ${SIGNS[c.moonSign][3]}</p>
+    <p class="read"><b>Current phase.</b> The ${cur.L} dasha runs until ${fmtDate(cur.end)}. Read the houses above through ${cur.L}'s placement in house ${(c.bodies.find(b=>b.n===cur.L)||{}).house}, which shows where this period's results show up.</p>
+    <div class="note">Guidance for reflection, not a prediction or a substitute for medical, legal or financial advice. Positions are calculated for the Lahiri ayanamsa and are approximate to within a fraction of a degree, so a birth time that is a few minutes off can change the Lagna.</div>
+  </div>
+  <div class="panel">
+    <h2>Planet positions</h2>
+    <div class="scroll"><table><thead><tr><th>Planet</th><th>Sign</th><th>Degree</th><th>House</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <h3>Vimshottari dasha</h3>
+    <div class="dasha">${dash}</div>
+  </div>
+  <div class="panel">
+    <h2>Go deeper with Claude</h2>
+    <p class="read">Copy this prompt into a Claude chat for a longer written reading, follow-up questions and remedies.</p>
+    <textarea class="out" id="pr" readonly aria-label="Prompt for Claude">${esc(prompt)}</textarea>
+    <div class="btns"><button type="button" id="cp">Copy prompt</button><span class="hint" id="cpm"></span></div>
+  </div>`;
+  $("cp").onclick=async()=>{const t=$("pr");try{await navigator.clipboard.writeText(t.value);$("cpm").textContent="Copied"}catch(e){t.select();$("cpm").textContent="Press copy on the selected text"}};
+}
+
+function read(){
+  const g=id=>$(id).value.trim();
+  const inp={name:g("name"),dob:g("dob"),tob:g("tob"),gender:g("gender"),tz:parseFloat(g("tz")),focus:g("focus"),q:g("q"),city:g("city")};
+  if($("city").value==="x"){inp.lat=parseFloat(g("lat"));inp.lon=parseFloat(g("lon"))}
+  else{const c=CITIES[+$("city").value];inp.lat=c[1];inp.lon=c[2]}
+  if(!inp.name)return{e:"Enter the customer's name."};
+  if(!inp.dob)return{e:"Enter the date of birth."};
+  if(!inp.tob)return{e:"Enter the time of birth. The Lagna needs it."};
+  if(isNaN(inp.tz)||inp.tz<-12||inp.tz>14)return{e:"Time zone must be a number of hours, such as 5.5."};
+  if(isNaN(inp.lat)||isNaN(inp.lon)||Math.abs(inp.lat)>66||Math.abs(inp.lon)>180)return{e:"Enter latitude and longitude as decimal degrees. Latitude must be within 66."};
+  return{inp};
+}
+function run(){
+  const r=read();$("err").textContent=r.e||"";
+  if(r.e)return;
+  try{render(r.inp,calc(r.inp))}catch(e){$("err").textContent="Could not calculate: "+e.message}
+}
+$("f").addEventListener("submit",e=>{e.preventDefault();run()});
+
+let clients=[];
+try{clients=JSON.parse(localStorage.getItem("jg_clients")||"[]")}catch(e){}
+function persist(){try{localStorage.setItem("jg_clients",JSON.stringify(clients))}catch(e){}}
+const FIELDS=["name","dob","tob","gender","city","lat","lon","tz","focus","q"];
+function drawBook(){
+  $("book").innerHTML=clients.length?clients.map((c,i)=>`<li><span><b>${esc(c.name)}</b><br><small class="tag">${esc(c.dob)} ${esc(c.tob)}</small></span><span><button data-o="${i}">Open</button> <button data-d="${i}" aria-label="Delete ${esc(c.name)}">Delete</button></span></li>`).join(""):`<li><span class="hint">No saved customers yet. Fill the form and choose Save.</span></li>`;
+}
+$("book").addEventListener("click",e=>{
+  const o=e.target.dataset.o,d=e.target.dataset.d;
+  if(o!==undefined){FIELDS.forEach(f=>$(f).value=clients[o][f]??"");$("city").onchange();run()}
+  if(d!==undefined){clients.splice(d,1);persist();drawBook()}
+});
+$("save").onclick=()=>{
+  const r=read();$("err").textContent=r.e||"";if(r.e)return;
+  const rec={};FIELDS.forEach(f=>rec[f]=$(f).value.trim());
+  const i=clients.findIndex(c=>c.name===rec.name&&c.dob===rec.dob);
+  if(i>=0)clients[i]=rec;else clients.push(rec);
+  persist();drawBook();$("err").textContent="Saved.";
+};
+$("csv").onclick=()=>{
+  const q=v=>'"'+String(v).replace(/"/g,'""')+'"';
+  $("csvout").value=[FIELDS.join(",")].concat(clients.map(c=>FIELDS.map(f=>q(c[f]??"")).join(","))).join("\n");
+  $("csvout").hidden=false;$("csvout").select();
+};
+drawBook();run();
+</script>
